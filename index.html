@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Letter Tracing Master</title>
+    <title>Multilingual Letter Tracing Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Quicksand', sans-serif;
@@ -13,13 +13,16 @@
             touch-action: none;
             overflow: hidden;
         }
+        .devanagari {
+            font-family: 'Noto Sans Devanagari', sans-serif;
+        }
         .tracing-canvas {
             touch-action: none;
             cursor: crosshair;
             filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
         }
         .letter-guide {
-            font-size: 350px;
+            font-size: clamp(200px, 50vw, 350px);
             font-weight: 700;
             color: #e2e8f0;
             user-select: none;
@@ -29,7 +32,6 @@
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 1;
-            font-family: 'Times New Roman', serif; /* Classic serif for clear stroke paths */
         }
         .dashed-line {
             position: absolute;
@@ -39,7 +41,7 @@
             pointer-events: none;
         }
         .btn-bounce:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
         }
         .confetti {
             position: absolute;
@@ -49,44 +51,57 @@
             border-radius: 50%;
             pointer-events: none;
         }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
     </style>
 </head>
-<body class="flex flex-col h-screen p-4 md:p-8">
+<body class="flex flex-col h-screen p-3 md:p-6">
 
     <!-- Header -->
-    <header class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-blue-600">Trace & Learn</h1>
-            <p class="text-gray-500 font-medium">Master your ABCs!</p>
-        </div>
-        <div class="flex gap-4">
-            <div id="stars-container" class="flex gap-1 text-yellow-400 text-2xl">
-                <!-- Stars will be populated here -->
+    <header class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-xl shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l1.5 1.5"/><path d="M22 22l-1.5-1.5"/></svg>
             </div>
-            <div class="bg-white px-4 py-2 rounded-full shadow-sm border border-blue-100">
-                <span class="text-sm font-bold text-blue-400">STREAK: </span>
-                <span id="streak-count" class="text-lg font-bold text-blue-600">0</span>
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-blue-600 leading-none">Trace & Learn</h1>
+                <select id="language-select" onchange="toggleLanguage()" class="mt-1 text-xs font-bold text-blue-400 bg-transparent border-none focus:ring-0 cursor-pointer">
+                    <option value="english">English (ABC)</option>
+                    <option value="marathi">Marathi (अआई)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="flex gap-2">
+            <div class="bg-white px-3 py-1.5 rounded-2xl shadow-sm border border-blue-100 flex items-center gap-2">
+                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Streak</span>
+                <span id="streak-count" class="text-base font-bold text-blue-600">0</span>
             </div>
         </div>
     </header>
 
     <!-- Main Workspace -->
-    <main class="flex-grow flex flex-col md:flex-row gap-6 items-center justify-center relative">
+    <main class="flex-grow flex flex-col md:flex-row gap-4 items-center justify-center relative overflow-hidden">
         
-        <!-- Sidebar Controls -->
-        <div class="flex md:flex-col gap-3 order-2 md:order-1">
-            <button onclick="changeColor('#3b82f6')" class="w-12 h-12 rounded-full bg-blue-500 border-4 border-white shadow-md transform hover:scale-110 transition-all"></button>
-            <button onclick="changeColor('#ef4444')" class="w-12 h-12 rounded-full bg-red-500 border-4 border-white shadow-md transform hover:scale-110 transition-all"></button>
-            <button onclick="changeColor('#10b981')" class="w-12 h-12 rounded-full bg-emerald-500 border-4 border-white shadow-md transform hover:scale-110 transition-all"></button>
-            <button onclick="changeColor('#f59e0b')" class="w-12 h-12 rounded-full bg-amber-500 border-4 border-white shadow-md transform hover:scale-110 transition-all"></button>
-            <div class="w-px md:w-full h-full md:h-px bg-gray-200 my-2"></div>
-            <button onclick="clearCanvas()" class="p-3 rounded-xl bg-white text-gray-600 shadow hover:bg-gray-50 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        <!-- Sidebar Controls - Horizontal on mobile, vertical on desktop -->
+        <div class="flex md:flex-col gap-3 order-2 md:order-1 bg-white/50 p-2 rounded-2xl backdrop-blur-sm">
+            <button onclick="changeColor('#3b82f6')" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-500 border-4 border-white shadow-md transform active:scale-90 transition-all"></button>
+            <button onclick="changeColor('#ef4444')" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-500 border-4 border-white shadow-md transform active:scale-90 transition-all"></button>
+            <button onclick="changeColor('#10b981')" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-emerald-500 border-4 border-white shadow-md transform active:scale-90 transition-all"></button>
+            <button onclick="changeColor('#f59e0b')" class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-amber-500 border-4 border-white shadow-md transform active:scale-90 transition-all"></button>
+            <div class="hidden md:block w-full h-px bg-gray-200 my-1"></div>
+            <button onclick="clearCanvas()" class="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-xl bg-white text-gray-500 shadow active:scale-90 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
         </div>
 
         <!-- Canvas Area -->
-        <div class="relative bg-white rounded-3xl shadow-xl overflow-hidden border-8 border-white w-full max-w-2xl h-[500px] flex items-center justify-center order-1 md:order-2">
+        <div class="relative bg-white rounded-[2rem] shadow-2xl overflow-hidden border-4 md:border-8 border-white w-full max-w-2xl flex-grow md:flex-initial h-[400px] md:h-[500px] flex items-center justify-center order-1 md:order-2">
             <!-- Guidelines -->
             <div class="dashed-line top-1/4"></div>
             <div class="dashed-line top-1/2"></div>
@@ -96,37 +111,39 @@
             <canvas id="trace-canvas" class="tracing-canvas relative z-10"></canvas>
             
             <!-- Success Message Overlay -->
-            <div id="success-overlay" class="absolute inset-0 bg-blue-600/90 z-20 hidden flex flex-col items-center justify-center text-white p-6 text-center animate-in fade-in duration-300">
-                <div class="text-6xl mb-4">🌟</div>
-                <h2 class="text-4xl font-bold mb-2">Amazing!</h2>
-                <p class="text-xl opacity-90 mb-6">You traced it perfectly!</p>
-                <button onclick="nextLetter()" class="bg-white text-blue-600 px-8 py-3 rounded-2xl font-bold text-xl shadow-lg hover:bg-blue-50 transform active:scale-95 transition-all">
+            <div id="success-overlay" class="absolute inset-0 bg-blue-600/95 z-20 hidden flex flex-col items-center justify-center text-white p-6 text-center animate-in zoom-in duration-300">
+                <div class="text-7xl mb-4 animate-bounce">🏆</div>
+                <h2 class="text-4xl font-bold mb-2">खूप छान!</h2>
+                <p class="text-xl opacity-90 mb-8">Great Job! You traced it!</p>
+                <button onclick="nextLetter()" class="bg-white text-blue-600 px-10 py-4 rounded-2xl font-bold text-xl shadow-xl hover:bg-blue-50 transform active:scale-95 transition-all">
                     Next Letter
                 </button>
             </div>
         </div>
 
-        <!-- Alphabet Grid -->
-        <div class="w-full md:w-48 order-3 overflow-y-auto max-h-[500px] pr-2 custom-scrollbar">
-            <div class="grid grid-cols-4 md:grid-cols-2 gap-2" id="alphabet-grid">
+        <!-- Alphabet Grid - Collapsible or scrollable on mobile -->
+        <div class="w-full md:w-56 order-3 bg-white/30 rounded-2xl p-2 h-24 md:h-[500px] overflow-x-auto md:overflow-y-auto custom-scrollbar">
+            <div class="flex md:grid md:grid-cols-2 gap-2 h-full" id="alphabet-grid">
                 <!-- Alphabet buttons injected here -->
             </div>
         </div>
     </main>
 
     <!-- Footer Controls -->
-    <footer class="mt-6 flex justify-center gap-4">
-        <button onclick="prevLetter()" class="px-6 py-3 bg-white text-gray-700 font-bold rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            Previous
+    <footer class="mt-4 flex justify-between gap-3 items-center">
+        <button onclick="prevLetter()" class="w-14 h-14 md:w-auto md:px-6 md:py-3 bg-white text-gray-700 font-bold rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center gap-2 transform active:scale-90 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            <span class="hidden md:inline">Previous</span>
         </button>
-        <button onclick="checkTracing()" class="px-10 py-3 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 hover:bg-blue-700 flex items-center gap-2 transform active:scale-95 transition-all">
-            I'm Done!
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        
+        <button onclick="checkTracing()" class="flex-grow md:flex-initial px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 hover:bg-blue-700 flex items-center justify-center gap-3 transform active:scale-95 transition-all">
+            <span class="text-lg">Check Now!</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
         </button>
-        <button onclick="nextLetter()" class="px-6 py-3 bg-white text-gray-700 font-bold rounded-2xl shadow-sm border border-gray-100 hover:bg-gray-50 flex items-center gap-2">
-            Next
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+
+        <button onclick="nextLetter()" class="w-14 h-14 md:w-auto md:px-6 md:py-3 bg-white text-gray-700 font-bold rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center gap-2 transform active:scale-90 transition-all">
+            <span class="hidden md:inline">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         </button>
     </footer>
 
@@ -137,54 +154,87 @@
         const overlay = document.getElementById('success-overlay');
         const streakDisplay = document.getElementById('streak-count');
         const alphabetGrid = document.getElementById('alphabet-grid');
+        const langSelect = document.getElementById('language-select');
 
         let isDrawing = false;
         let currentColor = '#3b82f6';
         let currentLetter = 'A';
         let streak = 0;
         let points = [];
+        let currentLang = 'english';
 
-        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        const alphabets = {
+            english: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""),
+            marathi: "अ आ इ ई उ ऊ ऋ ए ऐ ओ औ अं अः क ख ग घ ङ च छ ज झ ञ ट ठ ड ढ ण त थ द ध न प फ ब भ म य र ल व श ष स ह ळ क्ष ज्ञ".split(" ")
+        };
 
-        // Initialize App
         function init() {
             resizeCanvas();
             renderAlphabetGrid();
-            setLetter('A');
+            setLetter(alphabets[currentLang][0]);
             
-            // Event Listeners
+            // Mouse Events
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
 
+            // Touch Events (Mobile Optimized)
             canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                startDrawing(e.touches[0]);
-            });
+                const touch = e.touches[0];
+                startDrawing(touch);
+            }, { passive: false });
+            
             canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                draw(e.touches[0]);
-            });
+                e.preventDefault(); // Prevents scrolling while tracing
+                const touch = e.touches[0];
+                draw(touch);
+            }, { passive: false });
+            
             canvas.addEventListener('touchend', stopDrawing);
 
-            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', debounce(resizeCanvas, 250));
+        }
+
+        function toggleLanguage() {
+            currentLang = langSelect.value;
+            if (currentLang === 'marathi') {
+                guide.classList.add('devanagari');
+            } else {
+                guide.classList.remove('devanagari');
+            }
+            setLetter(alphabets[currentLang][0]);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, arguments), wait);
+            };
         }
 
         function resizeCanvas() {
             const container = canvas.parentElement;
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
+            // Redraw letter after resize
+            guide.innerText = currentLetter;
             clearCanvas();
         }
 
         function renderAlphabetGrid() {
             alphabetGrid.innerHTML = '';
-            alphabet.forEach(char => {
+            const list = alphabets[currentLang];
+            list.forEach(char => {
                 const btn = document.createElement('button');
                 btn.innerText = char;
-                btn.className = `p-3 text-lg font-bold rounded-xl transition-all ${char === currentLetter ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-400 hover:bg-blue-50'}`;
-                btn.onclick = () => setLetter(char);
+                const isSelected = char === currentLetter;
+                btn.className = `min-w-[50px] md:min-w-0 p-3 md:p-4 text-xl font-bold rounded-2xl transition-all flex-shrink-0 flex items-center justify-center ${currentLang === 'marathi' ? 'devanagari' : ''} ${isSelected ? 'bg-blue-600 text-white shadow-xl scale-105 z-10' : 'bg-white text-gray-400 hover:bg-blue-50 active:scale-90'}`;
+                btn.onclick = () => {
+                    setLetter(char);
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                };
                 alphabetGrid.appendChild(btn);
             });
         }
@@ -204,8 +254,8 @@
         function startDrawing(e) {
             isDrawing = true;
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = (e.clientX || e.pageX) - rect.left;
+            const y = (e.clientY || e.pageY) - rect.top;
             
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -215,10 +265,10 @@
         function draw(e) {
             if (!isDrawing) return;
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = (e.clientX || e.pageX) - rect.left;
+            const y = (e.clientY || e.pageY) - rect.top;
 
-            ctx.lineWidth = 15;
+            ctx.lineWidth = window.innerWidth < 768 ? 10 : 16;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.strokeStyle = currentColor;
@@ -238,26 +288,25 @@
         }
 
         function prevLetter() {
-            const idx = alphabet.indexOf(currentLetter);
-            const prevIdx = (idx - 1 + alphabet.length) % alphabet.length;
-            setLetter(alphabet[prevIdx]);
+            const list = alphabets[currentLang];
+            const idx = list.indexOf(currentLetter);
+            const prevIdx = (idx - 1 + list.length) % list.length;
+            setLetter(list[prevIdx]);
         }
 
         function nextLetter() {
-            const idx = alphabet.indexOf(currentLetter);
-            const nextIdx = (idx + 1) % alphabet.length;
-            setLetter(alphabet[nextIdx]);
+            const list = alphabets[currentLang];
+            const idx = list.indexOf(currentLetter);
+            const nextIdx = (idx + 1) % list.length;
+            setLetter(list[nextIdx]);
         }
 
-        // Simulates a tracing accuracy check
         function checkTracing() {
-            if (points.length < 10) {
-                showMessage("Try drawing a bit more!", "orange");
+            if (points.length < 5) {
+                showMessage("काहीतरी लिहा! (Write something!)", "orange");
                 return;
             }
-
-            // In a real advanced app, we would compare point density against the letter path
-            // For this demo, we verify coverage and then celebrate
+            
             streak++;
             streakDisplay.innerText = streak;
             showSuccess();
@@ -269,21 +318,20 @@
         }
 
         function createConfetti() {
-            for (let i = 0; i < 50; i++) {
+            for (let i = 0; i < 40; i++) {
                 const confetti = document.createElement('div');
                 confetti.className = 'confetti';
                 confetti.style.left = Math.random() * 100 + 'vw';
-                confetti.style.backgroundColor = ['#ff0', '#f0f', '#0ff', '#0f0'][Math.floor(Math.random() * 4)];
+                confetti.style.backgroundColor = ['#ff0', '#f0f', '#0ff', '#0f0', '#3b82f6'][Math.floor(Math.random() * 5)];
                 confetti.style.top = '-10px';
-                confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
                 document.body.appendChild(confetti);
 
                 const animation = confetti.animate([
                     { top: '-10px', opacity: 1 },
-                    { top: '100vh', opacity: 0, transform: `rotate(${Math.random() * 1000}deg)` }
+                    { top: '100vh', opacity: 0, transform: `rotate(${Math.random() * 720}deg)` }
                 ], {
-                    duration: Math.random() * 2000 + 1000,
-                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                    duration: Math.random() * 1500 + 1000,
+                    easing: 'ease-out'
                 });
 
                 animation.onfinish = () => confetti.remove();
@@ -292,10 +340,13 @@
 
         function showMessage(text, color) {
             const msg = document.createElement('div');
-            msg.className = `fixed bottom-24 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold shadow-lg animate-bounce z-50 bg-${color}-500`;
+            msg.className = `fixed top-20 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl text-white font-bold shadow-xl z-50 bg-${color}-500 animate-in slide-in-from-top duration-300`;
             msg.innerText = text;
             document.body.appendChild(msg);
-            setTimeout(() => msg.remove(), 2000);
+            setTimeout(() => {
+                msg.classList.add('animate-out', 'fade-out');
+                setTimeout(() => msg.remove(), 300);
+            }, 2000);
         }
 
         window.onload = init;
