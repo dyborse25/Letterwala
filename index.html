@@ -130,10 +130,10 @@
             </div>
         </div>
 
-        <!-- Alphabet Grid -->
-        <div class="w-full md:w-52 order-3 bg-white/30 rounded-2xl p-2 shrink-0 overflow-hidden">
-            <div class="flex md:grid md:grid-cols-2 gap-2 overflow-x-auto md:overflow-y-auto h-full pb-1 custom-scrollbar" id="alphabet-grid">
-                <!-- Alphabet buttons injected here -->
+        <!-- Alphabet Grid with Arrows -->
+        <div class="w-full md:w-52 order-3 bg-white/30 rounded-2xl p-2 shrink-0 overflow-hidden relative">
+            <div class="flex md:grid md:grid-cols-2 gap-2 overflow-x-auto md:overflow-y-auto h-full pb-1 custom-scrollbar items-center" id="alphabet-grid">
+                <!-- Navigation Arrows and Alphabet buttons injected here -->
             </div>
         </div>
     </main>
@@ -232,6 +232,14 @@
         function renderAlphabetGrid() {
             alphabetGrid.innerHTML = '';
             const list = alphabets[currentLang];
+            
+            // Add Previous Arrow for Mobile Flow
+            const prevBtn = document.createElement('button');
+            prevBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`;
+            prevBtn.className = "md:hidden w-11 h-11 bg-white text-blue-600 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm active:scale-90";
+            prevBtn.onclick = prevLetter;
+            alphabetGrid.appendChild(prevBtn);
+
             list.forEach(char => {
                 const btn = document.createElement('button');
                 btn.innerText = char;
@@ -243,6 +251,13 @@
                 };
                 alphabetGrid.appendChild(btn);
             });
+
+            // Add Next Arrow for Mobile Flow
+            const nextBtn = document.createElement('button');
+            nextBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`;
+            nextBtn.className = "md:hidden w-11 h-11 bg-white text-blue-600 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm active:scale-90";
+            nextBtn.onclick = nextLetter;
+            alphabetGrid.appendChild(nextBtn);
         }
 
         function setLetter(char) {
@@ -251,6 +266,12 @@
             overlay.classList.add('hidden');
             clearCanvas();
             renderAlphabetGrid();
+            
+            // Auto-scroll selected button into view
+            setTimeout(() => {
+                const selected = Array.from(alphabetGrid.children).find(el => el.innerText === char);
+                if (selected) selected.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }, 50);
         }
 
         function changeColor(color) {
